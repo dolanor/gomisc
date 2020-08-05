@@ -1,0 +1,119 @@
+package main
+
+import (
+	"net/http"
+    "io"
+	"encoding/json"
+	"strconv"
+    "strings"
+)
+
+type decoder[type Src, Dest] interface {
+    Decode(Src, Dest) error
+}
+
+type jsonDec struct {}
+
+func (jd jsonDec) Decode(r io.ReadCloser, v interface{}) error {
+    return json.NewDecoder(r).Decode(v)
+}
+
+type encoder interface {
+    Encode(io.Writer,  interface{}) error
+}
+
+type jsonEnc struct { }
+
+func (je jsonEnc) Encode(w io.Writer, v interface{}) error {
+    return json.NewEncoder(w).Encode(v)
+}
+
+func handle[type Req, Res, Src, Dest] (method string, dec decoder[Src, Dest], enc encoder, f func(Req) (Res, error)) func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+        if r.Method != method {
+			http.Error(w, "bad method", http.StatusMethodNotAllowed)
+			return
+        }
+        
+		var req Req
+		err := dec.Decode(r.Body, &req)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		defer r.Body.Close()
+		
+		// Here comes code for validation
+		
+		resp, err := f(req)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		
+		err = enc.Encode(w, resp)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		} 
+	}
+}
+
+type httpDataSource int8
+
+const (
+    body = iota
+    form
+    query
+)
+
+type Handler[type Src, Dest] struct {
+    Method string
+    Encoder encoder
+    Decoder decoder[Src, Dest]
+    Source httpDataSource
+}
+
+func Handle[type Req, Res, Src, Dest](h *Handler[Src, Dest], f func(Req) (Res, error)) func(w http.ResponseWriter, r *http.Request){
+    return handle[Req, Res, Src, Dest](h.Method, h.Decoder, h.Encoder, f)
+}
+
+func uppercase(text string) (string, error) {
+    return strings.ToUpper(text), nil
+}
+
+type TextRequest struct {
+    Text string `json:"text"`
+}
+
+type TextResponse struct {
+    Text string `json:"text"`
+}
+
+func uppercaseText(req TextRequest) (TextResponse, error) {
+    return TextResponse{
+                Text: strings.ToUpper(req.Text),
+        }, nil
+}
+
+func main() {
+    postJSONHandler := &Handler[io.ReadCloser, interface{}] {
+        Method: http.MethodPost,
+        Encoder: &jsonEnc{},
+        Decoder: &jsonDec{},
+        Source: body,
+    }
+	http.HandleFunc("/atoi", Handle(postJSONHandler, strconv.Atoi))
+	//http.HandleFunc("/upper", Handle(postJSONHandler, uppercaseText))
+
+
+    getJSONHandler := &Handler[io.ReadCloser, interface{}] {
+        Method: http.MethodGet,
+        Encoder: &htmlEnc{},
+        Decoder: &queryDec{},
+        Source: query,
+    }
+	http.HandleFunc("/upper", Handle(getJSONHandler, uppercaseText))
+
+	http.ListenAndServe(":8888", nil)
+}
