@@ -9,21 +9,6 @@ import (
     "log"
 )
 
-type Decoder[type Src, Dest] interface {
-	Decode(src Src, dest Dest) error
-}
-
-type jsonDec struct{}
-
-func (d jsonDec) Decode(r io.ReadCloser, v interface{}) error {
-	return json.NewDecoder(r).Decode(v)
-}
-
-type Handler[type Src, Dest] struct {
-	Method  string
-	Decoder Decoder[Src, Dest]
-}
-
 func Handle[type Req, Res](method string, f func(Req) (Res, error)) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != method {
