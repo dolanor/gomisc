@@ -1,119 +1,92 @@
 package main
 
 import (
-	"net/http"
-    "io"
+	//"fmt"
 	"encoding/json"
-	"strconv"
-    "strings"
+	"io"
+	"net/http"
+	"strings"
+    "log"
 )
 
-type decoder[type Src, Dest] interface {
-    Decode(Src, Dest) error
+type Decoder[type Src, Dest] interface {
+	Decode(src Src, dest Dest) error
 }
 
-type jsonDec struct {}
+type jsonDec struct{}
 
-func (jd jsonDec) Decode(r io.ReadCloser, v interface{}) error {
-    return json.NewDecoder(r).Decode(v)
+func (d jsonDec) Decode(r io.ReadCloser, v interface{}) error {
+	return json.NewDecoder(r).Decode(v)
 }
 
-type encoder interface {
-    Encode(io.Writer,  interface{}) error
+type Handler[type Src, Dest] struct {
+	Method  string
+	Decoder Decoder[Src, Dest]
 }
 
-type jsonEnc struct { }
-
-func (je jsonEnc) Encode(w io.Writer, v interface{}) error {
-    return json.NewEncoder(w).Encode(v)
-}
-
-func handle[type Req, Res, Src, Dest] (method string, dec decoder[Src, Dest], enc encoder, f func(Req) (Res, error)) func(w http.ResponseWriter, r *http.Request) {
+func Handle[type Req, Res](method string, f func(Req) (Res, error)) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-        if r.Method != method {
+		if r.Method != method {
 			http.Error(w, "bad method", http.StatusMethodNotAllowed)
 			return
-        }
-        
+
+		}
+
 		var req Req
-		err := dec.Decode(r.Body, &req)
+
+		err := DecodeRequest(r, &req)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		defer r.Body.Close()
-		
-		// Here comes code for validation
-		
-		resp, err := f(req)
+
+        res, err := f(req)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		
-		err = enc.Encode(w, resp)
+
+        err = EncodeResponse(w, res)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
-		} 
+		}
 	}
 }
 
-type httpDataSource int8
-
-const (
-    body = iota
-    form
-    query
-)
-
-type Handler[type Src, Dest] struct {
-    Method string
-    Encoder encoder
-    Decoder decoder[Src, Dest]
-    Source httpDataSource
+type UppercaseRequest struct {
+	Text string
 }
 
-func Handle[type Req, Res, Src, Dest](h *Handler[Src, Dest], f func(Req) (Res, error)) func(w http.ResponseWriter, r *http.Request){
-    return handle[Req, Res, Src, Dest](h.Method, h.Decoder, h.Encoder, f)
+type UppercaseResponse struct {
+	Text string
 }
 
-func uppercase(text string) (string, error) {
-    return strings.ToUpper(text), nil
+func Uppercase(req UppercaseRequest) (UppercaseResponse, error) {
+	upped := strings.ToUpper(req.Text)
+	return UppercaseResponse{
+		Text: upped,
+	}, nil
 }
 
-type TextRequest struct {
-    Text string `json:"text"`
+func DecodeRequest[type Req](r *http.Request, req *Req) error {
+	// I want to decode the body
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		return err
+	}
+	defer r.Body.Close()
+
+	return nil
 }
 
-type TextResponse struct {
-    Text string `json:"text"`
-}
-
-func uppercaseText(req TextRequest) (TextResponse, error) {
-    return TextResponse{
-                Text: strings.ToUpper(req.Text),
-        }, nil
+func EncodeResponse[type Res](w io.Writer, res Res) (error) {
+    return json.NewEncoder(w).Encode(res)
 }
 
 func main() {
-    postJSONHandler := &Handler[io.ReadCloser, interface{}] {
-        Method: http.MethodPost,
-        Encoder: &jsonEnc{},
-        Decoder: &jsonDec{},
-        Source: body,
-    }
-	http.HandleFunc("/atoi", Handle(postJSONHandler, strconv.Atoi))
-	//http.HandleFunc("/upper", Handle(postJSONHandler, uppercaseText))
+	http.HandleFunc("/uppercase", Handle(http.MethodPost, Uppercase))
 
-
-    getJSONHandler := &Handler[io.ReadCloser, interface{}] {
-        Method: http.MethodGet,
-        Encoder: &htmlEnc{},
-        Decoder: &queryDec{},
-        Source: query,
-    }
-	http.HandleFunc("/upper", Handle(getJSONHandler, uppercaseText))
-
-	http.ListenAndServe(":8888", nil)
+    log.Println("listening on :8000")
+    log.Fatal(http.ListenAndServe(":8000", nil))
 }
