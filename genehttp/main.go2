@@ -17,19 +17,20 @@ func Handle[Req, Res any](method string, f func(Req) (Res, error)) func(w http.R
 
 		var req Req
 
-		err := DecodeRequestBody(r, &req)
+		err, closeFunc := DecodeRequestBody(r, &req)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		defer closeFunc()
+
+        	res, err := f(req)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
-        res, err := f(req)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-
-        err = EncodeResponse(w, res)
+		err = EncodeResponse(w, res)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -37,15 +38,13 @@ func Handle[Req, Res any](method string, f func(Req) (Res, error)) func(w http.R
 	}
 }
 
-func DecodeRequestBody[Req any](r *http.Request, req *Req) error {
+func DecodeRequestBody[Req any](r *http.Request, req *Req) (err error, closeFunc func() error) {
 	// I want to decode the body
-	err := json.NewDecoder(r.Body).Decode(&req)
+	err = json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
 		return err
 	}
-	defer r.Body.Close()
-
-	return nil
+	return nil, r.Body.Close
 }
 
 func EncodeResponse[Res any](w io.Writer, res Res) (error) {
