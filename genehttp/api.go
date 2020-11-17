@@ -1,7 +1,7 @@
 package main
 
 import (
-"strings"
+	"strings"
 )
 
 type UppercaseRequest struct {
@@ -20,23 +20,16 @@ func UpperCase(req UppercaseRequest) (UppercaseResponse, error) {
 }
 
 type SnakeCaseRequest struct {
-    Text string
+	Text string
 }
 
 type SnakeCaseResponse struct {
-    Text string
+	Text string
 }
 
 func SnakeCase(req SnakeCaseRequest) (SnakeCaseResponse, error) {
-    snaked := strings.ReplaceAll(req.Text, " ", "_")
-    return SnakeCaseResponse{
-        Text: snaked,
-    }, nil
+	snaked := strings.ReplaceAll(req.Text, " ", "_")
+	return SnakeCaseResponse{
+		Text: snaked,
+	}, nil
 }
-
-// dummy func with generics type parameters so the compiler works
-func f[type T](t T) {
-    println("wat")
-}
-
-
