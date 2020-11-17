@@ -7,7 +7,7 @@ import (
     "log"
 )
 
-func Handle[type Req, Res](method string, f func(Req) (Res, error)) func(w http.ResponseWriter, r *http.Request) {
+func Handle[Req, Res any](method string, f func(Req) (Res, error)) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != method {
 			http.Error(w, "bad method", http.StatusMethodNotAllowed)
@@ -37,7 +37,7 @@ func Handle[type Req, Res](method string, f func(Req) (Res, error)) func(w http.
 	}
 }
 
-func DecodeRequestBody[type Req](r *http.Request, req *Req) error {
+func DecodeRequestBody[Req any](r *http.Request, req *Req) error {
 	// I want to decode the body
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
@@ -48,7 +48,7 @@ func DecodeRequestBody[type Req](r *http.Request, req *Req) error {
 	return nil
 }
 
-func EncodeResponse[type Res](w io.Writer, res Res) (error) {
+func EncodeResponse[Res any](w io.Writer, res Res) (error) {
     return json.NewEncoder(w).Encode(res)
 }
 
