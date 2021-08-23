@@ -7,7 +7,7 @@ import (
     "log"
 )
 
-func Handle[Req, Res any](method string, f func(Req) (Res, error)) func(w http.ResponseWriter, r *http.Request) {
+func handle[Req, Res any](method string, f func(Req) (Res, error)) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != method {
 			http.Error(w, "bad method", http.StatusMethodNotAllowed)
@@ -52,8 +52,8 @@ func EncodeResponse[Res any](w io.Writer, res Res) (error) {
 }
 
 func main() {
-	http.HandleFunc("/uppercase", Handle(http.MethodPost, UpperCase))
-	http.HandleFunc("/snakecase", Handle(http.MethodPost, SnakeCase))
+	http.HandleFunc("/uppercase", handle(http.MethodPost, UpperCase))
+	http.HandleFunc("/snakecase", handle(http.MethodPost, SnakeCase))
 
     log.Println("listening on :8000")
     log.Fatal(http.ListenAndServe(":8000", nil))
