@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
-    "log"
+	"log"
 )
 
 func handle[Req, Res any](method string, f func(Req) (Res, error)) func(w http.ResponseWriter, r *http.Request) {
@@ -24,7 +24,7 @@ func handle[Req, Res any](method string, f func(Req) (Res, error)) func(w http.R
 		}
 		defer closeFunc()
 
-        	res, err := f(req)
+		res, err := f(req)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -48,13 +48,13 @@ func DecodeRequestBody[Req any](r *http.Request, req *Req) (err error, closeFunc
 }
 
 func EncodeResponse[Res any](w io.Writer, res Res) (error) {
-    return json.NewEncoder(w).Encode(res)
+	return json.NewEncoder(w).Encode(res)
 }
 
 func main() {
 	http.HandleFunc("/uppercase", handle(http.MethodPost, UpperCase))
 	http.HandleFunc("/snakecase", handle(http.MethodPost, SnakeCase))
 
-    log.Println("listening on :8000")
-    log.Fatal(http.ListenAndServe(":8000", nil))
+	log.Println("listening on :8000")
+	log.Fatal(http.ListenAndServe(":8000", nil))
 }
