@@ -1,0 +1,48 @@
+package main
+
+import (
+	"context"
+	"io/ioutil"
+	"log"
+	"os"
+	"time"
+
+	"github.com/chromedp/chromedp"
+)
+
+func main() {
+	dir, err := ioutil.TempDir("", "chromedp-example")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer os.RemoveAll(dir)
+
+	opts := append(chromedp.DefaultExecAllocatorOptions[:],
+		chromedp.DisableGPU,
+		chromedp.UserDataDir(dir),
+	)
+
+	allocCtx, cancel := chromedp.NewExecAllocator(context.Background(), opts...)
+	defer cancel()
+
+	// also set up a custom logger
+	taskCtx, cancel := chromedp.NewContext(allocCtx, chromedp.WithLogf(log.Printf))
+	defer cancel()
+
+	var example string
+	err = chromedp.Run(taskCtx,
+		chromedp.Navigate(`https://pkg.go.dev/time`),
+		// wait for footer element is visible (ie, page is loaded)
+		chromedp.WaitVisible(`body > footer`),
+		// find and click "Example" link
+		chromedp.Click(`#example-After`, chromedp.NodeVisible),
+		// retrieve the text of the textarea
+		chromedp.Value(`#example-After textarea`, &example),
+		chromedp.Sleep(time.Minute),
+	)
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.Printf("Go's time.After example:\n%s", example)
+
+}

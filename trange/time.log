@@ -1,0 +1,45 @@
+03-17: 2h30m
+03-19: 1h30m
+03-20: 10m
+03-23: 21m
+03-23: 1h
+04-02: 17m
+04-06: 56m
+04-07: 1h07m
+04-08: 1h34m
+04-09: 1h05m
+04-10: 1h53m
+04-14: 48m
+04-15: 12m
+04-16: 1h26m
+04-20: 2h36m
+04-24: 1h34m
+04-27: 1h10m
+04-28: 1h08m
+
+05-07: 3h40m
+05-08: 22m
+05-12: 6h25m
+05-13: 13m
+06-09: 1h34m
+06-10: 1h45m
+06-11: 2h11m
+06-12: 1h11m
+06-13: 38m
+06-14: 27m
+06-15: 24m
+07-21: 1h
+07-22: 8m
+08-25: 2m
+09-01: 35m
+
+au 2020-04-29T11:18:00, indiqué par Signal : travaillé 19h17 - 2h (docker). 
+Avec wakatime, ça indique 21h. Du coup, je retire également 2h de plus pour être nickel.
+
+total : 41h52
+
+-2h (21h wakatime - 19h indiqué par Signal)
+-2h15 Docker
+-1h GitHub actions (CI)
+
+≃ 36h30
